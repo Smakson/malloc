@@ -54,19 +54,23 @@ int mm_init(void)
 /* mm_malloc
  * description */
 void *mm_malloc(size_t size) {
-    size_t s = A(size) + SoF + SoF;
+    size_t s = (size_t) A(size) + 2*SoF;
     char *p  = (char *) mem_heap_lo();
     char *hp = (char *) mem_heap_hi();
+    
+
     while ( p < hp ) { //inside the heap
         if ( !(C(p) & 1) && (C(p) >= s) ) { //checking if its free or occupied
             size_t old = C(p);
             C(p) &= 0;
             C(p) += s | 1;
-            C(p + s - SoF) &= 0;
-            C(p + s - SoF) += s | 1;
+            char *fot = p + s - SoF;
+            C(fot) &= 0;
+            C(fot) += s | 1;
             if (s != old) {
-                C(p + s) &= 0;
-                C(p + s) += old - s;
+                char *next = p + s;
+                C(next) &= 0;
+                C(next) += old - s;
             }
             return (void *)(p + SoF);
             }
@@ -75,8 +79,9 @@ void *mm_malloc(size_t size) {
     }
     p = mem_sbrk(s);
     if (p == (void *)-1) return NULL;
-    C(p) = s | 1;
-    C(p + s - SoF) = s | 1;
+    C(p) += s | 1;
+    char *fot = p + s - SoF;
+    C(fot) = s | 1;
     return (void *)(p + SoF);
 }
 
@@ -108,7 +113,7 @@ void mm_free(void *vp)
 void *mm_realloc(void *vp, size_t size)
 {
     char *p = (char *) vp - SoF;
-    size_t s = A(size) + SoF;
+    size_t s = A(size) + 2*SoF;
     size_t t = C(p) & ~1;
     if (t >= s) return vp;
     void *np = mm_malloc(size);
