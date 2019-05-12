@@ -42,7 +42,7 @@ team_t team = {
 /* size of flag */
 #define SoF (A(sizeof(size_t)))
 /* cast to size_t */
-#define C(p) (*(size_t *)p)
+#define C(a) (*(size_t *)a)
 
 /* mm_init
  * description */
@@ -60,6 +60,7 @@ void *mm_malloc(size_t size) {
     while ( p < hp ) { //inside the heap
         if ( !(C(p) & 1) && (C(p) >= s) ) { //checking if its free or occupied
             size_t old = C(p);
+            C(p) = C(p) & ~1;
             C(p) = s | 1;
             C(p + s - SoF) = s | 1;
             if (s != old) {
@@ -68,7 +69,7 @@ void *mm_malloc(size_t size) {
             return (void *)(p + SoF);
             }
         }
-        p += C(p) & ~1;
+        p += (C(p) & ~1);
     }
     p = mem_sbrk(s);
     if (p == (void *)-1) return NULL;
