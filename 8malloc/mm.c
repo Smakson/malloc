@@ -89,29 +89,29 @@ void mm_free(void *vp)
     char *beg  = (char *) mem_heap_lo();
     char *end = (char *) mem_heap_hi();
     
-    char *cs =  vp - SoF;
-    char *ce =  cs + C(cs) - SoF;
-    char *pBe =  cs - SoF;    
-    char *nBs =  ce + SoF;
-    
+    char *ch =  vp - SoF;
+    char *cf =  ch + C(ch) - SoF;
+    char *pBf =  ch - SoF;    
+    char *nBh =  cf + SoF;
+    C(ch) &= ~1;
 
-    if ((cs != end) && !(C(nBs) & 1)) {
-        char *nBe =  ce +  C(nBs);
-        C(cs) += C(nBs) & ~1;
-        C(ce) &= 0;
-        C(nBe) = C(cs) & ~1;
-        C(nBs) &= 0;
+    if ((ch != end) && (!(C(nBh) & 1))) {
+        char *nBf =  cf +  C(nBh);
+        C(ch) += (C(nBh) & ~1);
+        C(cf) &= 0;
+        C(nBf) = C(ch);
+        C(nBh) &= 0;
     }
 
     
-    if ( (cs != beg) && !(C(pBe) & 1)) {
-        char *pBs =  cs - C(pBe);
-        C(pBs) += C(cs) & ~1;
-        C(pBe) &= 0;
-        C(ce) = C(pBs) & ~1;
-        C(cs) &= 0;
+    if ( (ch != beg) && (!(C(pBf) & 1))) {
+        char *pBh =  ch - C(pBf);
+        C(pBh) += C(ch);
+        C(pBf) &= 0;
+        C(cf) = (C(pBh) & ~1);
+        C(ch) &= 0;
     }
-    C(cs) &= ~1;
+
 }
 
 /* mm_realloc
