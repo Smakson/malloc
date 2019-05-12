@@ -80,7 +80,7 @@ void *mm_malloc(size_t size) {
     return (void *)(p + SoF);
 }
 /* mm_free
- * description 
+ * description */
 void mm_free(void *vp)
 {
     char *beg  = (char *) mem_heap_lo();
@@ -90,9 +90,9 @@ void mm_free(void *vp)
     char *pBe = cs - SoF;    
     char *pBs = cs - C(pBe);
     char *nBs = ce + SoF;
-    char *nBe = ce + C(nBs);
+    char *nBe = nBs +  C(nBs);
 
-    if ((end > nBs) && !(C(nBs) & 1)) {
+    if (!(C(nBs) & 1)) {
         C(cs) += C(nBs) & ~1;
         C(ce) &= 0;
         C(nBe) = C(cs) & ~1;
@@ -100,14 +100,14 @@ void mm_free(void *vp)
     }
 
     
-    if ((beg < pBs) && !(C(pBe) & 1)) {
+    if (!(C(pBe) & 1)) {
         C(pBs) += C(cs) & ~1;
         C(pBe) &= 0;
         C(ce) = C(pBs) & ~1;
         C(cs) &= 0;
     }
     C(cs) &= ~1;
-}/*
+}
 
 /* mm_realloc
  * description */
