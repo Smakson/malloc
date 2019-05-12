@@ -48,6 +48,7 @@ team_t team = {
  * description */
 int mm_init(void)
 {
+
     return 0;
 }
 
@@ -89,11 +90,11 @@ void mm_free(void *vp)
     char *cs =  vp - SoF;
     char *ce =  cs + C(cs) - SoF;
     char *pBe =  cs - SoF;    
-    char *pBs =  cs - C(pBe);
     char *nBs =  ce + SoF;
-    char *nBe =  nBs +  C(nBs);
+    
 
-    if ((nBs != vp) || !(C(nBs) & 1)) {
+    if ((nBs != end) || !(C(nBs) & 1)) {
+        char *nBe =  nBs +  C(nBs);
         C(cs) += C(nBs) & ~1;
         C(ce) &= 0;
         C(nBe) = C(cs) & ~1;
@@ -101,7 +102,8 @@ void mm_free(void *vp)
     }
 
     
-    if ( (vp != beg) || !(C(pBe) & 1)) {
+    if ( (cs != beg) || !(C(pBe) & 1)) {
+        char *pBs =  cs - C(pBe);
         C(pBs) += C(cs) & ~1;
         C(pBe) &= 0;
         C(ce) = C(pBs) & ~1;
