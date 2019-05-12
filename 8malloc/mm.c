@@ -85,21 +85,28 @@ void mm_free(void *vp)
 {
     char *beg  = (char *) mem_heap_lo();
     char *end = (char *) mem_heap_hi();
-    char *c = (char *) vp - SoF;
-    char *pB = c - SoF;
-    char *nB = c + (C(c) & ~1);
-    
-    if ((end > nB) && !(C(nB) & 1)) {
-        C(c) += C(nB) & ~1;
-        C(nB) &= ~1;
+    char *cs = (char *) vp - SoF;
+    char *ce = (char *) cs + C(cs) - SoF;
+    char *pBe = cs - SoF;    
+    char *pBs = cs - C(pBe);
+    char *nBs = ce + SoF;
+    char *nBe = ce + C(nBs);
+
+    if ((end > nBs) && !(C(nBs) & 1)) {
+        C(cs) += C(nBs) & ~1;
+        C(ce) &= 0;
+        C(nBe) = C(cs) & ~1;
+        C(nBs) &= 0;
     }
 
     
-    if ((beg < pB) && !(C(pB) & 1)) {
-        C(pB) += C(c) & ~1;
-        C(c) &= ~1;
+    if ((beg < pBs) && !(C(pBe) & 1)) {
+        C(pBs) += C(cs) & ~1;
+        C(pBe) &= 0;
+        C(ce) = C(pBs) & ~1;
+        C(cs) &= 0;
     }
-    C(c) &= ~1;
+    C(cs) &= ~1;
 }
 
 /* mm_realloc
