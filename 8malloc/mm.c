@@ -97,13 +97,13 @@ void mm_free(void *vp)
     
     if ((end > nB) && !(C(nB) & 1)) {
         C(c) += C(nB) & ~1;
-        C(nB) &= ~1
+        C(nB) &= ~1;
     }
 
     
     if ((beg < pB) && !(C(pB) & 1)) {
         C(pB) += C(c) & ~1;
-        C(c) &= ~1
+        C(c) &= ~1;
     }
     C(c) &= ~1;
 }
