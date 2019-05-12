@@ -54,18 +54,20 @@ int mm_init(void)
 /* mm_malloc
  * description */
 void *mm_malloc(size_t size) {
-    size_t s = A(size) + 2 * SoF;
+    size_t s = A(size) + SoF;
     char *p  = (char *) mem_heap_lo();
     char *hp = (char *) mem_heap_hi();
     while ( p < hp ) { //inside the heap
-        if ( !(C(p) & 1) && (C(p) >= s) ) { //checking if its free or occupied
-            size_t old = C(p);
-            C(p) = s | 1;
-            C(p + s - SoF) = s | 1;
-            if (s != old) {
-                C(p + s) = old - s;
+        if ( !(C(p) & 1) ) { //checking if its free
+            while ( C(p) < hp-p ) { //checking that we are not outside 
+                char *np = p + C(p);
+                if (C(np) & 1) break;
+                C(p) += C(np);
             }
-            return (void *)(p + SoF);
+            
+            if ( C(p) >= s ) {
+                C(p) |= 1;
+                return (void *)(p + SoF);
             }
         }
         p += C(p) & ~1;
@@ -73,31 +75,15 @@ void *mm_malloc(size_t size) {
     p = mem_sbrk(s);
     if (p == (void *)-1) return NULL;
     C(p) = s | 1;
-    C(p + s - SoF) = s | 1;
     return (void *)(p + SoF);
 }
 
 /* mm_free
  * description */
 void mm_free(void *vp)
-{
-    char *beg  = (char *) mem_heap_lo();
-    char *end = (char *) mem_heap_hi();
-    char *c = (char *) vp - SoF;
-    char *pB = c - SoF;
-    char *nB = c + (C(c) & ~1);
-    
-    if ((end > nB) && !(C(nB) & 1)) {
-        C(c) += C(nB) & ~1;
-        C(nB) &= ~1
-    }
-
-    
-    if ((beg < pB) && !(C(pB) & 1)) {
-        C(pB) += C(c) & ~1;
-        C(c) &= ~1
-    }
-    C(c) &= ~1;
+{   
+    char *p = (char *) vp - SoF;
+    C(p) &= ~1;
 }
 
 /* mm_realloc
