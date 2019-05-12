@@ -64,17 +64,16 @@ void *mm_malloc(size_t size) {
             size_t sizedif = fbs - s;
     
             if (sizedif >= 3) {
-                C(p) =  s;
+                C(p) = s;
                 char *next = p + s;
                 char *newfot = next - SoF;
                 C(newfot) = s | 1;
-                C(next) = sizedif | 1;
-                char *fot = (char *) fbs - SoF;
-                C(fot) = C(sizedif) | 1;
+                C(next) = sizedif;
+                char *fot = p + fbs - SoF;
+                C(fot) = sizedif;
             }
-           
-            
-            char *fot = (char *) fbs - SoF;
+    
+            char *fot = p + fbs - SoF;
             C(fot) |= 1;
             C(p) |= 1;
             return (void *)(p + SoF);
