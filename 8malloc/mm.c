@@ -78,6 +78,8 @@ void *mm_malloc(size_t size) {
     p = mem_sbrk(s);
     if (p == (void *)-1) return NULL;
     C(p) = s | 1;
+    char *fot = p + s - SoF;
+    C(fot) = s | 1;
     return (void *)(p + SoF);
 }
 /* mm_free
