@@ -145,7 +145,9 @@ void *mm_realloc(void *vp, size_t size)
     void *np = mm_malloc(size);
     if (np == NULL) return NULL;
     C(p) &= ~1;
-    memcpy(np, vp, t-SoF);
+    char *fot = p + s - SoF;
+    C(fot) &= ~1;
+    memcpy(np, vp, t- 2*SoF);
     return np;
 }
 
