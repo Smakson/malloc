@@ -93,7 +93,7 @@ void mm_free(void *vp)
     char *nBs =  ce + SoF;
     
 
-    if ((nBs != end) || !(C(nBs) & 1)) {
+    if ((cs != end) || !(C(nBs) & 1)) {
         char *nBe =  nBs +  C(nBs);
         C(cs) += C(nBs) & ~1;
         C(ce) &= 0;
