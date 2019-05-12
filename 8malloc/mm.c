@@ -60,17 +60,23 @@ void *mm_malloc(size_t size) {
     char *hp = mem_heap_hi();
     while ( p < hp ) {
         if ( !(C(p) & 1) && (C(p) >= s) ) {
-           size_t old = C(p);
-            C(p) &= 0;
-            C(p) += s | 1;
-            char *fot = p + s - SoF;
-            C(fot) &= 0;
-            C(fot) += s | 1;
-            if (s != old) {
+            size_t fbs = C(p);
+            size_t sizedif = fbs - s;
+    
+            if (sizedif >= 3) {
+                C(p) =  s;
                 char *next = p + s;
-                C(next) &= 0;
-                C(next) += old - s;
+                char *newfot = next - SoF;
+                C(newfot) = s | 1;
+                C(next) = sizedif | 1;
+                char *fot = fbs - SoF;
+                C(fot) = C(sizedif) | 1;
             }
+           
+            
+            char *fot = fbs - SoF;
+            C(nextfot) |= 1;
+            C(p) |= 1;
             return (void *)(p + SoF);
             }
         p += (C(p) & ~1);
@@ -103,7 +109,6 @@ void mm_free(void *vp)
         C(nBh) &= 0;
     }
 
-    
     if ( (ch != beg) && (!(C(pBf) & 1))) {
         char *pBh =  ch - C(pBf);
         C(pBh) += C(ch);
