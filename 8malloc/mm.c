@@ -69,13 +69,13 @@ void *mm_malloc(size_t size) {
                 char *newfot = next - SoF;
                 C(newfot) = s | 1;
                 C(next) = sizedif | 1;
-                char *fot = fbs - SoF;
+                char *fot = (char *) fbs - SoF;
                 C(fot) = C(sizedif) | 1;
             }
            
             
-            char *fot = fbs - SoF;
-            C(nextfot) |= 1;
+            char *fot = (char *) fbs - SoF;
+            C(fot) |= 1;
             C(p) |= 1;
             return (void *)(p + SoF);
             }
