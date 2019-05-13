@@ -62,9 +62,8 @@ void *mm_malloc(size_t size) {
         if ( !(C(p) & 1) && (C(p) >= s) ) {
             size_t fbs = C(p);
             size_t sizedif = fbs - s;
-    
             if (sizedif >= 3) {
-                C(p) = s;
+                C(p) = s | 1;
                 char *next = p + s;
                 char *newfot = next - SoF;
                 C(newfot) = s | 1;
@@ -72,10 +71,11 @@ void *mm_malloc(size_t size) {
                 char *fot = p + fbs - SoF;
                 C(fot) = sizedif;
             }
-    
-            char *fot = p + fbs - SoF;
-            C(fot) |= 1;
-            C(p) |= 1;
+            else {
+                char *fot = p + fbs - SoF;
+                C(fot) |= 1;
+                C(p) |= 1;
+            }
             return (void *)(p + SoF);
             }
         p += (C(p) & ~1);
