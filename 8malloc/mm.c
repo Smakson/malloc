@@ -99,9 +99,9 @@ void mm_free(void *vp)
     char *pBf =  ch - SoF;    
     char *nBh =  cf + SoF;
     C(ch) &= ~1;
+    char *nBf = nBh + C(nBh) - SoF;
 
-    if ((ch != end) && (!(C(nBh) & 1))) {
-        char *nBf =  cf +  C(nBh);
+    if ((nBf < end) && (!(C(nBh) & 1))) {
         C(ch) += (C(nBh) & ~1);
         C(cf) &= 0;
         C(nBf) = C(ch);
