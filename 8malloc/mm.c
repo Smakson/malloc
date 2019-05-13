@@ -48,8 +48,7 @@ team_t team = {
 
 /* mm_init
  * description */
-int mm_init(void)
-{
+int mm_init(void) {
     return 0;
 }
 
@@ -60,25 +59,25 @@ void *mm_malloc(size_t size) {
     char *ch = mem_heap_lo();
     char *hi = mem_heap_hi();
     while ( ch < hi ) {
-        if ( !(C(ch) & 1) && (C(ch) >= s) ) { // if free and big enough
-            size_t fs = C(ch); // free block size
-            size_t diff = fs - s;
+        size_t bs = C(ch); // block size
+        if ( !(bs&1) && (bs>=s) ) { // if free and big enough
+            size_t diff = bs - s;
             if (diff >= 64) { // split
                 char *nh = ch + s;
                 char *cf = ch + s - FS;
-                char *nf = ch + fs - FS;
+                char *nf = ch + bs - FS;
                 C(ch) = s | 1;
                 C(cf) = s | 1;
                 C(nh) = diff;
                 C(nf) = diff;
             } else { // dont split
-                char *cf = ch + fs - FS;
+                char *cf = ch + bs - FS;
                 C(ch) |= 1;
                 C(cf) |= 1;
             }
             return ch + HS;
         }
-        ch += C(ch) & ~1;
+        ch += bs & ~1;
     }
     ch = mem_sbrk(s);
     if (ch == (char *)-1) return NULL;
@@ -91,8 +90,8 @@ void *mm_malloc(size_t size) {
  * description */
 void mm_free(void *vp)
 {
-    char *lo = (char *) mem_heap_lo();
-    char *hi = (char *) mem_heap_hi();
+    char *lo = mem_heap_lo();
+    char *hi = mem_heap_hi();
     char *ch = (char *) vp - HS;
 
     size_t s = C(ch) & ~1;
@@ -103,18 +102,23 @@ void mm_free(void *vp)
     C(ch) &= ~1;
     C(cf) &= ~1;
 
-    if ((nh < hi) && (!(C(nh) & 1))) {
-        char *nf = nh + C(nh) - HS;
-        C(ch) += C(nh);
-        C(nf) += C(cf);
+    if ( (nh<hi) && !(C(nh)&1) ) {
+        size_t t = C(nh);
+        char *nf = nh + t - FS;
+        C(ch) += t;
+        C(nf) += s;
+        cf = nf;
+        s += t;
     }
 
-    if ((ch > lo) && (!(C(pf) & 1))) {
-        char *ph =  ch - C(pf);
-        C(ph) += C(ch);
-        C(cf) += C(pf);
+    if ((ch>lo) && (!(C(pf)&1))) {
+        size_t t = C(pf);
+        char *ph =  ch - t;
+        C(ph) += s;
+        C(cf) += t;
+        ch = ph;
+        s += t;
     }
-
 }
 
 /* mm_realloc
@@ -129,12 +133,12 @@ void *mm_realloc(void *vp, size_t size)
     char *nh = ch + t;
     char *hi = mem_heap_hi();
 
-    printf("%d\n", hi-nh);
     if (nh > hi) {
-        mm_malloc(s-t); // extend
+        char *p = mem_sbrk(s-t);
+        if (p == (char *)-1) return NULL;
         char *cf = ch + s - FS;
-        C(cf) = s | 1;
         C(ch) = s | 1;
+        C(cf) = s | 1;
         return vp;
     }
 
