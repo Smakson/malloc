@@ -93,8 +93,7 @@ void mm_free(void *vp)
 {
     char *lo = (char *) mem_heap_lo();
     char *hi = (char *) mem_heap_hi();
-    char *ch = (char *) vp;
-    ch -= HS; // dont trust void* arithmetic
+    char *ch = (char *) vp - HS;
 
     size_t s = C(ch) & ~1;
     char *cf = ch + s - FS;
@@ -122,14 +121,33 @@ void mm_free(void *vp)
  * description */
 void *mm_realloc(void *vp, size_t size)
 {
-    char *p = (char *) vp - HS;
+    char *ch = (char *) vp - HS;
     size_t s = A(size) + HS + FS;
-    size_t t = C(p) & ~1;
+    size_t t = C(ch) & ~1;
     if (t >= s) return vp;
-    void *np = mm_malloc(size);
-    if (np == NULL) return NULL;
-    memcpy(np, vp, t-HS-FS);
+
+    char *nh = ch + t;
+    char *hi = mem_heap_hi();
+
+    printf("%d\n", hi-nh);
+    if (nh > hi) {
+        mm_malloc(s-t); // extend
+        char *cf = ch + s - FS;
+        C(cf) = s | 1;
+        C(ch) = s | 1;
+        return vp;
+    }
+
+    ch = mm_malloc(s);
+    if (ch == NULL) return NULL;
+
+    char *cf = ch + s - FS;
+    C(ch) = s | 1;
+    C(cf) = s | 1;
+
+    memcpy(ch+HS, vp, t-HS-FS);
     mm_free(vp);
-    return np;
+
+    return ch+HS;
 }
 
