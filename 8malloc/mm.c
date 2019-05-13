@@ -39,8 +39,10 @@ team_t team = {
 #define ALIGNMENT 8
 /* rounds up to the nearest multiple of ALIGNMENT */
 #define A(size) (((size) + (ALIGNMENT-1)) & ~(ALIGNMENT-1))
-/* size of flag */
-#define SoF (A(sizeof(size_t)))
+/* header size */
+#define HS (A(sizeof(size_t)))
+/* footer size */
+#define FS (A(sizeof(size_t)))
 /* cast to size_t */
 #define C(p) (*(size_t *)p)
 
@@ -55,37 +57,36 @@ int mm_init(void)
 /* mm_malloc
  * description */
 void *mm_malloc(size_t size) {
-    size_t s = A(size) + 2*SoF;
+    size_t s = A(size) + HS + FS;
     char *p  = mem_heap_lo();
     char *hp = mem_heap_hi();
     while ( p < hp ) {
-        if ( !(C(p) & 1) && (C(p) >= s) ) {
-            size_t fbs = C(p);
-            size_t sizedif = fbs - s;
-            if (sizedif >= 3) {
+        if ( !(C(p) & 1) && (C(p) >= s) ) { // if free and big enough
+            size_t fbs = C(p); // free block size
+            size_t diff = fbs - s;
+            if (diff >= 64) { // split
                 C(p) = s | 1;
-                char *next = p + s;
-                char *newfot = next - SoF;
-                C(newfot) = s | 1;
-                C(next) = sizedif;
-                char *fot = p + fbs - SoF;
-                C(fot) = sizedif;
-            }
-            else {
-                char *fot = p + fbs - SoF;
-                C(fot) |= 1;
+                char *nph = p + s;
+                char *pf  = np - FS;
+                C(pf) = s | 1;
+                C(np) = diff;
+                char *npft = p + fbs - FS;
+                C(npft) = diff;
+            } else { // dont split
+                char *pft = p + s - FS;
+                C(pft) |= 1;
                 C(p) |= 1;
             }
-            return (void *)(p + SoF);
-            }
+            return p + HS;
+        }
         p += (C(p) & ~1);
     }
     p = mem_sbrk(s);
-    if (p == (void *)-1) return NULL;
+    if (p == (char *)-1) return NULL;
     C(p) = s | 1;
-    char *fot = p + s - SoF;
-    C(fot) = s | 1;
-    return (void *)(p + SoF);
+    char *pft = p + s - FS;
+    C(pft) = s | 1;
+    return p + HS;
 }
 /* mm_free
  * description */
@@ -94,26 +95,22 @@ void mm_free(void *vp)
     char *beg  = (char *) mem_heap_lo();
     char *end = (char *) mem_heap_hi();
     
-    char *ch =  vp - SoF;
-    char *cf =  ch + C(ch) - SoF;
-    char *pBf =  ch - SoF;    
-    char *nBh =  cf + SoF;
+    char *ch =  (char *) vp - HS;
     C(ch) &= ~1;
-    char *nBf = nBh + C(nBh) - SoF;
+    char *cf = ch + C(ch) - HS;
+    char *pf = ch - FS;
+    char *nh = cf + FS;
+    char *nf = nh + C(nh) - HS;
 
-    if ((nBf < end) && (!(C(nBh) & 1))) {
-        C(ch) += (C(nBh) & ~1);
-        C(cf) &= 0;
-        C(nBf) = C(ch);
-        C(nBh) &= 0;
+    if ((nf < end) && (!(C(nh) & 1))) {
+        C(ch) += C(nh);
+        C(nf) += C(cf);
     }
 
-    if ( (ch != beg) && (!(C(pBf) & 1))) {
-        char *pBh =  ch - C(pBf);
-        C(pBh) += C(ch);
-        C(pBf) &= 0;
-        C(cf) = (C(pBh) & ~1);
-        C(ch) &= 0;
+    if ( (ch != beg) && (!(C(pf) & 1))) {
+        char *ph =  ch - C(pf);
+        C(ph) += C(ch);
+        C(cf) += C(pf);
     }
 
 }
@@ -122,13 +119,13 @@ void mm_free(void *vp)
  * description */
 void *mm_realloc(void *vp, size_t size)
 {
-    char *p = (char *) vp - SoF;
-    size_t s = A(size) + 2*SoF;
+    char *p = (char *) vp - HS;
+    size_t s = A(size) + HS + FS;
     size_t t = C(p) & ~1;
     if (t >= s) return vp;
     void *np = mm_malloc(size);
     if (np == NULL) return NULL;
-    memcpy(np, vp, t- 2*SoF);
+    memcpy(np, vp, t-HS-FS);
     mm_free(vp);
     return np;
 }
