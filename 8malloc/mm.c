@@ -60,6 +60,8 @@ void *mm_malloc(size_t size) {
     char *hi = mem_heap_hi();
     while ( ch < hi ) {
         size_t bs = C(ch); // block size
+        // if (bs & 1) printf("1");
+        // else printf("0");
         if ( !(bs&1) && (bs>=s) ) { // if free and big enough
             size_t diff = bs - s;
             if (diff >= 64) { // split
@@ -75,10 +77,12 @@ void *mm_malloc(size_t size) {
                 C(ch) |= 1;
                 C(cf) |= 1;
             }
+            // printf("\n");
             return ch + HS;
         }
         ch += bs & ~1;
     }
+    // printf("\n");
     ch = mem_sbrk(s);
     if (ch == (char *)-1) return NULL;
     char *cf = ch + s - FS;
@@ -133,7 +137,7 @@ void *mm_realloc(void *vp, size_t size)
     char *nh = ch + t;
     char *hi = mem_heap_hi();
 
-    if (nh > hi) {
+    if (nh > hi) { // forget about extending for the moment
         char *p = mem_sbrk(s-t);
         if (p == (char *)-1) return NULL;
         char *cf = ch + s - FS;
@@ -142,16 +146,12 @@ void *mm_realloc(void *vp, size_t size)
         return vp;
     }
 
-    ch = mm_malloc(s);
+    ch = mm_malloc(size);
     if (ch == NULL) return NULL;
 
-    char *cf = ch + s - FS;
-    C(ch) = s | 1;
-    C(cf) = s | 1;
-
-    memcpy(ch+HS, vp, t-HS-FS);
+    memcpy(ch, vp, t-HS-FS);
     mm_free(vp);
 
-    return ch+HS;
+    return ch;
 }
 
