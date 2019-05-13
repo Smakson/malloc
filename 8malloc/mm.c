@@ -38,11 +38,11 @@ team_t team = {
 /* single word (4) or double word (8) alignment */
 #define ALIGNMENT 8
 /* rounds up to the nearest multiple of ALIGNMENT */
-#define A(size) (((size) + (ALIGNMENT-1)) & ~(ALIGNMENT-1))
+#define A(size) (((size) + 7) & ~7)
 /* header size */
-#define HS (A(sizeof(size_t)))
+#define HS 8
 /* footer size */
-#define FS (A(sizeof(size_t)))
+#define FS 8
 /* cast to size_t */
 #define C(p) (*(size_t *)p)
 /* cast to char* */
@@ -67,7 +67,7 @@ void *mm_malloc(size_t size) {
         size_t bs = C(ch); // block size
         if ( bs>=s ) { // big enough
             size_t diff = bs - s;
-            if (diff >= 64 && 0) { // split - TODO later
+            if ((diff >= 64) && 0) { // split - TODO later
                 char *nh = ch + s;
                 char *cf = ch + s - FS;
                 char *nf = ch + bs - FS;
@@ -77,8 +77,8 @@ void *mm_malloc(size_t size) {
                 C(nf) = diff;
             } else { // dont split
                 char *cf = ch + bs - FS;
-                C(ch) |= 1;
-                C(cf) |= 1;
+                C(ch) = bs | 1;
+                C(cf) = bs | 1;
                 P(ph) = P(cf);
             }
             return ch + HS;
@@ -98,7 +98,6 @@ void *mm_malloc(size_t size) {
  * description */
 void mm_free(void *vp) {
     char *lo = mem_heap_lo();
-    char *hi = mem_heap_hi();
     char *ch = (char *) vp - HS;
 
     // quick fix: we just set the new as root
@@ -113,6 +112,7 @@ void mm_free(void *vp) {
     C(cf) &= ~1;
 
     return;
+    char *hi = mem_heap_hi();
 
     char *pf = ch - FS;
     char *nh = ch + s;
@@ -144,6 +144,7 @@ void mm_free(void *vp) {
  * description */
 void *mm_realloc(void *vp, size_t size)
 {
+    return NULL;
     char *ch = (char *) vp - HS;
     size_t s = A(size) + HS + FS;
     size_t t = C(ch) & ~1;
