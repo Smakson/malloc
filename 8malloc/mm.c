@@ -50,7 +50,6 @@ team_t team = {
  * description */
 int mm_init(void)
 {
-
     return 0;
 }
 
@@ -58,56 +57,60 @@ int mm_init(void)
  * description */
 void *mm_malloc(size_t size) {
     size_t s = A(size) + HS + FS;
-    char *p  = mem_heap_lo();
-    char *hp = mem_heap_hi();
-    while ( p < hp ) {
-        if ( !(C(p) & 1) && (C(p) >= s) ) { // if free and big enough
-            size_t fbs = C(p); // free block size
-            size_t diff = fbs - s;
+    char *ch = mem_heap_lo();
+    char *hi = mem_heap_hi();
+    while ( ch < hi ) {
+        if ( !(C(ch) & 1) && (C(ch) >= s) ) { // if free and big enough
+            size_t fs = C(ch); // free block size
+            size_t diff = fs - s;
             if (diff >= 64) { // split
-                C(p) = s | 1;
-                char *nph = p + s;
-                char *pf  = np - FS;
-                C(pf) = s | 1;
-                C(np) = diff;
-                char *npft = p + fbs - FS;
-                C(npft) = diff;
+                char *nh = ch + s;
+                char *cf = ch + s - FS;
+                char *nf = ch + fs - FS;
+                C(ch) = s | 1;
+                C(cf) = s | 1;
+                C(nh) = diff;
+                C(nf) = diff;
             } else { // dont split
-                char *pft = p + s - FS;
-                C(pft) |= 1;
-                C(p) |= 1;
+                char *cf = ch + fs - FS;
+                C(ch) |= 1;
+                C(cf) |= 1;
             }
-            return p + HS;
+            return ch + HS;
         }
-        p += (C(p) & ~1);
+        ch += C(ch) & ~1;
     }
-    p = mem_sbrk(s);
-    if (p == (char *)-1) return NULL;
-    C(p) = s | 1;
-    char *pft = p + s - FS;
-    C(pft) = s | 1;
-    return p + HS;
+    ch = mem_sbrk(s);
+    if (ch == (char *)-1) return NULL;
+    char *cf = ch + s - FS;
+    C(ch) = s | 1;
+    C(cf) = s | 1;
+    return ch + HS;
 }
 /* mm_free
  * description */
 void mm_free(void *vp)
-{   
-    char *beg  = (char *) mem_heap_lo();
-    char *end = (char *) mem_heap_hi();
-    
-    char *ch =  (char *) vp - HS;
-    C(ch) &= ~1;
-    char *cf = ch + C(ch) - HS;
-    char *pf = ch - FS;
-    char *nh = cf + FS;
-    char *nf = nh + C(nh) - HS;
+{
+    char *lo = (char *) mem_heap_lo();
+    char *hi = (char *) mem_heap_hi();
+    char *ch = (char *) vp;
+    ch -= HS; // dont trust void* arithmetic
 
-    if ((nf < end) && (!(C(nh) & 1))) {
+    size_t s = C(ch) & ~1;
+    char *cf = ch + s - FS;
+    char *pf = ch - FS;
+    char *nh = ch + s;
+
+    C(ch) &= ~1;
+    C(cf) &= ~1;
+
+    if ((nh < hi) && (!(C(nh) & 1))) {
+        char *nf = nh + C(nh) - HS;
         C(ch) += C(nh);
         C(nf) += C(cf);
     }
 
-    if ( (ch != beg) && (!(C(pf) & 1))) {
+    if ((ch > lo) && (!(C(pf) & 1))) {
         char *ph =  ch - C(pf);
         C(ph) += C(ch);
         C(cf) += C(pf);
