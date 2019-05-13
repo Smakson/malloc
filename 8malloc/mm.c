@@ -45,10 +45,15 @@ team_t team = {
 #define FS (A(sizeof(size_t)))
 /* cast to size_t */
 #define C(p) (*(size_t *)p)
+/* cast to char* */
+#define P(p) ( *(char **) ( (char *) p + 4 ) )
 
 /* mm_init
  * description */
 int mm_init(void) {
+    // init first pointer
+    char *p = mem_sbrk(HS);
+    P(p) = NULL;
     return 0;
 }
 
@@ -56,15 +61,13 @@ int mm_init(void) {
  * description */
 void *mm_malloc(size_t size) {
     size_t s = A(size) + HS + FS;
-    char *ch = mem_heap_lo();
-    char *hi = mem_heap_hi();
-    while ( ch < hi ) {
+    char *ph = mem_heap_lo();
+    char *ch = P(ph);
+    while ( ch ) {
         size_t bs = C(ch); // block size
-        // if (bs & 1) printf("1");
-        // else printf("0");
-        if ( !(bs&1) && (bs>=s) ) { // if free and big enough
+        if ( bs>=s ) { // big enough
             size_t diff = bs - s;
-            if (diff >= 64) { // split
+            if (diff >= 64 && 0) { // split - TODO later
                 char *nh = ch + s;
                 char *cf = ch + s - FS;
                 char *nf = ch + bs - FS;
@@ -76,13 +79,13 @@ void *mm_malloc(size_t size) {
                 char *cf = ch + bs - FS;
                 C(ch) |= 1;
                 C(cf) |= 1;
+                P(ph) = P(cf);
             }
-            // printf("\n");
             return ch + HS;
         }
-        ch += bs & ~1;
+        ph = ch;
+        ch = P(ch);
     }
-    // printf("\n");
     ch = mem_sbrk(s);
     if (ch == (char *)-1) return NULL;
     char *cf = ch + s - FS;
@@ -90,18 +93,30 @@ void *mm_malloc(size_t size) {
     C(cf) = s | 1;
     return ch + HS;
 }
+
 /* mm_free
  * description */
-void mm_free(void *vp)
-{
+void mm_free(void *vp) {
     char *lo = mem_heap_lo();
     char *hi = mem_heap_hi();
     char *ch = (char *) vp - HS;
 
+    // quick fix: we just set the new as root
+    // TODO merge with others and remove em from list
+    P(ch) = P(lo);
+    P(lo) = ch;
+
     size_t s = C(ch) & ~1;
     char *cf = ch + s - FS;
+
+    C(ch) &= ~1;
+    C(cf) &= ~1;
+
+    return;
+
     char *pf = ch - FS;
     char *nh = ch + s;
+
 
     C(ch) &= ~1;
     C(cf) &= ~1;
