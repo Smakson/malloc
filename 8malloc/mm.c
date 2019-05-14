@@ -121,27 +121,32 @@ void *mm_malloc(size_t size) {
 void mm_free(void *vp) {
     char *ch = (char *) vp - HS;
     char *lo = mem_heap_lo();
-
+    char *cf = ch + C(ch) - FS;
     size_t s = C(ch) & ~1;
     
     // prev in mem
-    char *pf = ch - FS;
-    if ( lo != pf && !(C(pf)&1) && 0 ) {
-        char *ph = ch - C(pf);
-        char *ph0 = P(pf);
-        char *nh0 = P(ph);
-        char *nf0 = nh0 + C(nh0) - FS;
-        P(ph0) = nh0;
-        if (nh0) P(nf0) = ph0;
-        s += C(ph);
-        ch = ph;
+    char *pmf = ch - FS;
+    if ( lo != pmf && !(C(pmf)&1)) {
+        char *pmh = ch - C(pmf);
+
+        char *nfh = P(pmh);
+        char *pfh = P(pmf);
+
+        P(pfh) = nfh;
+
+        if (nfh) {
+            char *nff = nfh + C(nfh) - FS;
+            P(nff) = pfh;
+        }        
+        s += C(pmh);        
+        ch = pmh;
     }
 
     // next in mem
     char *hi = mem_heap_hi();
-    char *nh = ch + s;
-    if ( nh < hi && !(C(nh)&1) && 0 ) {
-        char *nf = nh + C(nh) - FS;
+    char *nmh = ch + s;
+    if ( nmh < hi && !(C(nmh)&1)&&0) {
+        char *nmf = nmh + C(nmh) - FS;
         char *ph0 = P(nf);
         char *nh0 = P(nh);
         char *nf0 = nh0 + C(nh0) - FS;
@@ -188,4 +193,5 @@ void *mm_realloc(void *vp, size_t size)
 
     return ch;
 }
+
 
