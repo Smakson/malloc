@@ -65,21 +65,42 @@ void *mm_malloc(size_t size) {
     char *ch = P(ph);
     while ( ch ) {
         size_t bs = C(ch); // block size
-        if ( bs>=s ) { // big enough
-            size_t diff = bs - s;
-            if ((diff >= 64) && 0) { // split - TODO later
-                char *nh = ch + s;
+        if ( bs >= s ) { // big enough
+            size_t diff = 0; // bs - s;
+            if ( diff >= s || diff >= 64 ) {
+
                 char *cf = ch + s - FS;
+
+                // next in mem
+                char *nh = ch + s;
                 char *nf = ch + bs - FS;
                 C(ch) = s | 1;
                 C(cf) = s | 1;
-                C(nh) = diff;
-                C(nf) = diff;
+
+                // next in llist
+                nh = P(ch);
+                P(ph) = nh;
+                nf = nh + C(nh);
+                P(nf) = ph;
+
+                // as if rest was allocated
+                C(nh) = diff | 1;
+                C(nf) = diff | 1;
+                mm_free(nh + HS);
+
             } else { // dont split
+
                 char *cf = ch + bs - FS;
                 C(ch) = bs | 1;
                 C(cf) = bs | 1;
-                P(ph) = P(ch);
+
+                char *nh = P(ch);
+                P(ph) = nh;
+                if ( nh ) {
+                    char *nf = nh + C(nh) - FS;
+                    P(nf) = ph;
+                }
+
             }
             return ch + HS;
         }
@@ -97,47 +118,43 @@ void *mm_malloc(size_t size) {
 /* mm_free
  * description */
 void mm_free(void *vp) {
-    char *lo = mem_heap_lo();
     char *ch = (char *) vp - HS;
+    char *lo = mem_heap_lo();
 
-    // quick fix: we just set the new as root
-    // TODO merge with others and remove em from list
+    size_t s = C(ch) & ~1;
+    
+    // prev in mem
+    char *pf = ch - FS;
+    if ( lo != pf && !(C(pf)&1) && 0 ) {
+        char *ph = ch - C(pf);
+        char *ph0 = P(pf);
+        char *nh0 = P(ph);
+        char *nf0 = nh0 + C(nh0) - FS;
+        P(ph0) = nh0;
+        if (nh0) P(nf0) = ph0;
+        s += C(ph);
+        ch = ph;
+    }
+
+    // next in mem
+    char *hi = mem_heap_hi();
+    char *nh = ch + s;
+    if ( nh < hi && !(C(nh)&1) && 0 ) {
+        char *nf = nh + C(nh) - FS;
+        char *ph0 = P(nf);
+        char *nh0 = P(nh);
+        char *nf0 = nh0 + C(nh0) - FS;
+        P(ph0) = nh0;
+        if (nh0) P(nf0) = ph0;
+        s += C(nh);
+   }
+
     P(ch) = P(lo);
     P(lo) = ch;
 
-    size_t s = C(ch) & ~1;
     char *cf = ch + s - FS;
-
-    C(ch) &= ~1;
-    C(cf) &= ~1;
-
-    return;
-    char *hi = mem_heap_hi();
-
-    char *pf = ch - FS;
-    char *nh = ch + s;
-
-
-    C(ch) &= ~1;
-    C(cf) &= ~1;
-
-    if ( (nh<hi) && !(C(nh)&1) ) {
-        size_t t = C(nh);
-        char *nf = nh + t - FS;
-        C(ch) += t;
-        C(nf) += s;
-        cf = nf;
-        s += t;
-    }
-
-    if ((ch>lo) && (!(C(pf)&1))) {
-        size_t t = C(pf);
-        char *ph =  ch - t;
-        C(ph) += s;
-        C(cf) += t;
-        ch = ph;
-        s += t;
-    }
+    C(ch) = s;
+    C(cf) = s;
 }
 
 /* mm_realloc
