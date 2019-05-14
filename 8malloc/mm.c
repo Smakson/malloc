@@ -68,7 +68,7 @@ void *mm_malloc(size_t size) {
         assert((bs&1)==0);
         if ( bs >= s ) { // big enough
             size_t diff = bs - s;
-            if ( diff >= 16 + HS + FS ) { // big enough to split block
+            if ( diff >= 16 + HS + FS ) { // split block
                 // allocate first half
                 char *cf = ch + s - FS;
                 C(ch) = s | 1;
@@ -85,6 +85,7 @@ void *mm_malloc(size_t size) {
                     char *nf = nh + C(nh) - FS;
                     P(nf) = ph;
                 }
+                // will be added to linked list
                 mm_free(nmh + HS);
             } else { // dont split
                 // allocate
@@ -105,6 +106,7 @@ void *mm_malloc(size_t size) {
         ph = ch;
         ch = P(ch);
     }
+    // nothing founded
     ch = mem_sbrk(s);
     if (ch == (char *)-1) return NULL;
     char *cf = ch + s - FS;
