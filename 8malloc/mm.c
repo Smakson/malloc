@@ -79,7 +79,7 @@ void *mm_malloc(size_t size) {
                 char *cf = ch + bs - FS;
                 C(ch) = bs | 1;
                 C(cf) = bs | 1;
-                P(ph) = P(cf);
+                P(ph) = P(ch);
             }
             return ch + HS;
         }
