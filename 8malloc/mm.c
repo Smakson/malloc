@@ -109,12 +109,28 @@ void *mm_malloc(size_t size) {
         ch = P(ch);
     }
     // nothing founded, go get more mem
-    ch = mem_sbrk(s);
-    if (ch == (char *)-1) return NULL;
-    // allocate
-    char *cf = ch + s - FS;
-    C(ch) = s | 1;
-    C(cf) = s | 1;
+    if (s <= 64 + HS + FS) {
+        size_t t = s * 4;
+        ch = mem_sbrk(t);
+        if (ch == (char *)-1) return NULL;
+
+        char *cf = ch + s - FS;
+        size_t diff = t - s;
+        char *nh = ch + s;
+        char *nf = ch + t - FS;
+        C(ch) = s | 1;
+        C(cf) = s | 1;
+        C(nh) = diff | 1;
+        C(nf) = diff | 1;
+        mm_free(nh + HS);
+    } else {
+        ch = mem_sbrk(s);
+        if (ch == (char *)-1) return NULL;
+        // allocate
+        char *cf = ch + s - FS;
+        C(ch) = s | 1;
+        C(cf) = s | 1;
+    }
     return ch + HS;
 }
 
