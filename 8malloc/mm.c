@@ -47,12 +47,14 @@ team_t team = {
 #define C(p) (*(size_t *)p)
 /* cast to char* */
 #define P(p) ( *(char **) ( (char *) p + 4 ) )
+/* lilboi or bigboi */
 
 /* mm_init
  * description */
 int mm_init(void) {
     // init first pointer
     char *p = mem_sbrk(HS);
+    P(p) = NULL;
     P(p) = NULL;
     return 0;
 }
@@ -121,9 +123,8 @@ void *mm_malloc(size_t size) {
 void mm_free(void *vp) {
     char *ch = (char *) vp - HS;
     char *lo = mem_heap_lo();
-    char *cf = ch + C(ch) - FS;
     size_t s = C(ch) & ~1;
-    
+
     // prev in mem
     char *pmf = ch - FS;
     if ( lo != pmf && !(C(pmf)&1)) {
@@ -145,29 +146,37 @@ void mm_free(void *vp) {
     // next in mem
     char *hi = mem_heap_hi();
     char *nmh = ch + s;
-    if ( nmh < hi && !(C(nmh)&1)&&0) {
+    if ( nmh < hi && !(C(nmh)&1)) {
         char *nmf = nmh + C(nmh) - FS;
-        char *ph0 = P(nf);
-        char *nh0 = P(nh);
-        char *nf0 = nh0 + C(nh0) - FS;
-        P(ph0) = nh0;
-        if (nh0) P(nf0) = ph0;
-        s += C(nh);
-   }
+        char *nfh = P(nmh);
+        char *pfh = P(nmf);
 
-    P(ch) = P(lo);
-    P(lo) = ch;
+        P(pfh) = nfh;
+
+        if (nfh) {
+            char *nff = nfh + C(nfh) - FS;
+            P(nff) = pfh;
+        }        
+        s += C(nmh);        
+    }
 
     char *cf = ch + s - FS;
+    char *nh = P(lo);
+    P(ch) = nh;
+    if (nh) {
+        char *nf = nh + C(nh) - FS;
+        P(nf) = ch;
+    }
+    P(cf) = lo;
+    P(lo) = ch;
+
     C(ch) = s;
     C(cf) = s;
 }
 
 /* mm_realloc
  * description */
-void *mm_realloc(void *vp, size_t size)
-{
-    return NULL;
+void *mm_realloc(void *vp, size_t size) {
     char *ch = (char *) vp - HS;
     size_t s = A(size) + HS + FS;
     size_t t = C(ch) & ~1;
