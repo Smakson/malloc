@@ -65,36 +65,34 @@ void *mm_malloc(size_t size) {
     char *ch = P(ph);
     while ( ch ) {
         size_t bs = C(ch); // block size
+        assert((bs&1)==0);
         if ( bs >= s ) { // big enough
-            size_t diff = 0; // bs - s;
-            if ( diff >= s || diff >= 64 ) {
-
-                char * nlh = P(ch); //
-                char *cf = ch + bs - FS;
+            size_t diff = bs - s;
+            if ( diff >= 16 + HS + FS ) { // big enough to split block
+                // allocate first half
+                char *cf = ch + s - FS;
                 C(ch) = s | 1;
-                C(cf) = s | 1; //here we have allocated it
-                
-                // next in mem (split block)
-                char *nh = cf + FS;
-                char *nf = nh + diff - FS; //we compute its bounds
-
-                // next in llist
-                P(ph) = nh; //taking 
-                P(nf) = ph;
-                P(nh) = nlh;
-
-                // as if rest was allocated
-                C(nh) = diff | 1;
-                C(nf) = diff | 1;    //taking care of the header and footer of the now free block we just split off
-                mm_free(nh + HS); //because we are lazy and don't want to copy a whole block of text here
-
-            } else { // dont split
-
-                char *cf = ch + bs - FS;
+                C(cf) = s | 1;
+                // create block for second half
+                char *nmh = ch + s;
+                char *nmf = ch + bs - FS;
+                C(nmh) = diff | 1;
+                C(nmf) = diff | 1;
+                // rewiring
                 char *nh = P(ch);
+                P(ph) = nh;
+                if ( nh ) {
+                    char *nf = nh + C(nh) - FS;
+                    P(nf) = ph;
+                }
+                mm_free(nmh + HS);
+            } else { // dont split
+                // allocate
+                char *cf = ch + bs - FS;
                 C(ch) = bs | 1;
                 C(cf) = bs | 1;
-                
+                // rewiring
+                char *nh = P(ch);
                 P(ph) = nh;
                 if ( nh ) {
                     char *nf = nh + C(nh) - FS;
