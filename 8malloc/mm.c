@@ -106,9 +106,10 @@ void *mm_malloc(size_t size) {
         ph = ch;
         ch = P(ch);
     }
-    // nothing founded
+    // nothing founded, go get more mem
     ch = mem_sbrk(s);
     if (ch == (char *)-1) return NULL;
+    // allocate
     char *cf = ch + s - FS;
     C(ch) = s | 1;
     C(cf) = s | 1;
