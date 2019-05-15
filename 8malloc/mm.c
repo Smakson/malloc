@@ -84,20 +84,20 @@ void *mm_malloc(size_t size) {
     size_t s = A(size) + HS + FS;
     char *ph = mem_heap_lo();
     char *ch = P(ph);
-    char *bp = ch;
-    size_t bd = 200000;//just something huge
+    char *bp;
+    size_t bd = -1; // HUGE
     while ( ch ) {
         size_t bs = C(ch); // block size
         //printf("bs: %d\n", bs);
         assert((bs&1)==0); //debugging purposes
-        if ( bs >= s && bs - s < bd) {
+        if ( bs >= s && bs < bd) {
             bp = ch;
-            bd = bs - s;
+            bd = bs;
         }
         ph = ch;
         ch = P(ch);
     }
-    if ( bd != 200000 ) { // our best fit actually found something
+    if ( bd != -1 ) { // our best fit actually found something
             ch = bp;
             ph = P(ch + C(ch) - FS);
             assert(P(ph)==ch);
