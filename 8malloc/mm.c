@@ -63,9 +63,15 @@ team_t team = {
  * description */
 int mm_init(void) {
     // init first pointer
-    char *p = mem_sbrk(HS);
-    P(p) = NULL;
-    P(p) = NULL;
+    size_t SB = 64; // smallboiz
+    char *p = mem_sbrk(HS + SB);
+    char *h = p+8;
+    P(p) = h;
+    C(h) = SB;
+    P(h) = NULL;
+    char *f = p + SB - FS;
+    P(f) = p;
+    C(f) = SB;
     return 0;
 }
 
@@ -122,8 +128,8 @@ void *mm_malloc(size_t size) {
         ch = P(ch);
     }
     // nothing founded, go get more mem
-    if (s <= 64 + HS + FS) {
-        size_t t = s * 4;
+    if (size <= 64) {
+        size_t t = s * 3;
         ch = mem_sbrk(t);
         if (ch == (char *)-1) return NULL;
 
@@ -137,6 +143,10 @@ void *mm_malloc(size_t size) {
         C(nf) = diff | 1;
         mm_free(nh + HS);
     } else {
+        if (size < 512) {
+            size = 8 * size / 7;
+            s = A(size) + HS + FS;
+        }
         ch = mem_sbrk(s);
         if (ch == (char *)-1) return NULL;
         // allocate
