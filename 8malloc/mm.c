@@ -100,6 +100,7 @@ void *mm_malloc(size_t size) {
     if ( bd != 200000 ) { // our best fit actually found something
             ch = bp;
             ph = P(ch + C(ch) - FS);
+            assert(P(ph)==ch);
             size_t bs = C(ch);
             size_t diff = bs - s;
             //printf("diff: %d\nblocksize: %d\n", diff, bs);
