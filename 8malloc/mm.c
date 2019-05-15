@@ -84,11 +84,24 @@ void *mm_malloc(size_t size) {
     size_t s = A(size) + HS + FS;
     char *ph = mem_heap_lo();
     char *ch = P(ph);
+    char *bp = ch;
+    size_t bd = 200000;//just something huge
     while ( ch ) {
         size_t bs = C(ch); // block size
-        assert((bs&1)==0);
-        if ( bs >= s ) { // big enough
+        //printf("bs: %d\n", bs);
+        assert((bs&1)==0); //debugging purposes
+        if (bs - s < bd) {
+            bp = ch;
+            bd = bs -s;
+        }
+        ph = ch;
+        ch = P(ch);
+    }
+    if ( bd != 200000) { // our best fit actually found something
+            ch = bp;
+            size_t bs = C(ch);
             size_t diff = bs - s;
+            //printf("diff: %d\nblocksize: %d\n", diff, bs);
             if ( diff >= 16 + HS + FS ) { // split block
                 // allocate first half
                 char *cf = ch + s - FS;
@@ -124,10 +137,7 @@ void *mm_malloc(size_t size) {
             }
             return ch + HS;
         }
-        ph = ch;
-        ch = P(ch);
-    }
-    // nothing founded, go get more mem
+    // nothing found, go get more mem
     if (size <= 64) {
         size_t t = s * 3;
         ch = mem_sbrk(t);
