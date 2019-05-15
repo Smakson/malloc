@@ -1,13 +1,24 @@
 /*
- * mm-naive.c - The fastest, least memory-efficient malloc package.
- * 
- * In this naive approach, a block is allocated by simply incrementing
- * the brk pointer.  A block is pure payload. There are no headers or
- * footers.  Blocks are never coalesced or reused. Realloc is
- * implemented directly using mm_malloc and mm_free.
+ * mm.c - explicit doubly linked list of free blocks
  *
- * NOTE TO STUDENTS: Replace this header comment with your own header
- * comment that gives a high level description of your solution.
+ * strategy:
+ * - for malloc, we find the first big enough free block
+ *   and split it if there is enough space left
+ * - for realloc, we try to have the expanding block at the very edge
+ *   of the heap to allow cheap growth
+ * - when expanding the heap for a small we allocate a bigger one,
+ *   to avoid having small blocks between bigger ones,
+ *   esp if they cannot be allocated afterwards
+ *   (could be improved)
+ *
+ * details:
+ * we have a pointer to the first block of the least
+ * at the beginning of the heap.
+ * each block contains a header 8 bytes and a footer 8 bytes
+ * header contains next block pointer and size + (free ? 0 : 1)
+ * footer contains previous block pointer and size + (free ? 0 : 1)
+ * the invariant is that two free blocks are never adjacent
+ * when freeing we make sure to merge with neighbors if they are free
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -47,7 +58,6 @@ team_t team = {
 #define C(p) (*(size_t *)p)
 /* cast to char* */
 #define P(p) ( *(char **) ( (char *) p + 4 ) )
-/* lilboi or bigboi */
 
 /* mm_init
  * description */
@@ -60,7 +70,10 @@ int mm_init(void) {
 }
 
 /* mm_malloc
- * description */
+ * iterate over free blocks, if one free is big enough
+ * split it if there is enough space left
+ * or extend mem
+ */
 void *mm_malloc(size_t size) {
     size_t s = A(size) + HS + FS;
     char *ph = mem_heap_lo();
@@ -135,7 +148,8 @@ void *mm_malloc(size_t size) {
 }
 
 /* mm_free
- * description */
+ * rewiring and merging
+ */
 void mm_free(void *vp) {
     char *ch = (char *) vp - HS;
     char *lo = mem_heap_lo();
@@ -191,7 +205,10 @@ void mm_free(void *vp) {
 }
 
 /* mm_realloc
- * description */
+ * dont shrink
+ * if at edge, extend,
+ * otherwise move to edge
+ */
 void *mm_realloc(void *vp, size_t size) {
     char *ch = (char *) vp - HS;
     size_t s = A(size) + HS + FS;
@@ -217,6 +234,37 @@ void *mm_realloc(void *vp, size_t size) {
     mm_free(vp);
 
     return ch;
+}
+
+int mm_check(void) {
+    char *lo = mem_heap_lo();
+    char *ph = lo;
+    char *hi = (char *) mem_heap_hi() + 1;
+    char *ch = P(ph);
+    while ( ch ) {
+        // check free
+        int s1 = C(ch);
+        if (s1&1) return 1;
+        // check same
+        char *cf = ch + s1 - FS;
+        int s2 = C(cf);
+        if ( s2 != s1 ) return 2;
+        // check back pointer
+        char *p = P(cf);
+        if ( p != ph ) return 3;
+        // check free neighbors
+        if ( ch != lo + HS ) {
+            p = ch - HS;
+            if (!(C(p)&1)) return 4;
+        }
+        if ( cf + FS != hi ) {
+            p = cf + FS;
+            if (!(C(p)&1)) return 5;
+        }
+        ph = ch;
+        ch = P(ch);
+    }
+    return 0;
 }
 
 
