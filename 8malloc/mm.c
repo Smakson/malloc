@@ -57,7 +57,7 @@ team_t team = {
 /* cast to size_t */
 #define C(p) (*(size_t *)p)
 /* cast to char* */
-#define P(p) ( *(char **) ( (char *) (p) + 4 ) )
+#define P(p) ( *(char **) ( (char *) p + 4 ) )
 
 /* mm_init
  * description */
@@ -84,26 +84,22 @@ void *mm_malloc(size_t size) {
     size_t s = A(size) + HS + FS;
     char *ph = mem_heap_lo();
     char *ch = P(ph);
-    char *bp;
-    size_t bd = -1; // HUGE
+    char *bp = NULL;
+    size_t best = -1;
     while ( ch ) {
-        size_t bs = C(ch); // block size
-        //printf("bs: %d\n", bs);
-        assert((bs&1)==0); //debugging purposes
-        if ( bs >= s && bs < bd) {
+        size_t bs = C(ch);
+        if (bs>=s && bs<best) {
             bp = ch;
-            bd = bs;
+            best = bs;
         }
-        ph = ch;
         ch = P(ch);
     }
-    if ( bd != -1 ) { // our best fit actually found something
-            ch = bp;
-            ph = P(ch + C(ch) - FS);
-            assert(P(ph)==ch);
-            size_t bs = C(ch);
+    if ( bp ) {
+        ch = bp;
+        size_t bs = C(ch); // block size
+        ph = P(ch + bs - FS);
+        if ( bs >= s ) { // big enough
             size_t diff = bs - s;
-            //printf("diff: %d\nblocksize: %d\n", diff, bs);
             if ( diff >= 16 + HS + FS ) { // split block
                 // allocate first half
                 char *cf = ch + s - FS;
@@ -139,7 +135,9 @@ void *mm_malloc(size_t size) {
             }
             return ch + HS;
         }
-    // nothing found, go get more mem
+        printf("lel\n");
+    }
+    // nothing founded, go get more mem
     if (size <= 64) {
         size_t t = s * 3;
         ch = mem_sbrk(t);
