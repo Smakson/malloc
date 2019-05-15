@@ -57,7 +57,7 @@ team_t team = {
 /* cast to size_t */
 #define C(p) (*(size_t *)p)
 /* cast to char* */
-#define P(p) ( *(char **) ( (char *) p + 4 ) )
+#define P(p) ( *(char **) ( (char *) (p) + 4 ) )
 
 /* mm_init
  * description */
@@ -90,15 +90,16 @@ void *mm_malloc(size_t size) {
         size_t bs = C(ch); // block size
         //printf("bs: %d\n", bs);
         assert((bs&1)==0); //debugging purposes
-        if (bs - s < bd) {
+        if ( bs >= s && bs - s < bd) {
             bp = ch;
-            bd = bs -s;
+            bd = bs - s;
         }
         ph = ch;
         ch = P(ch);
     }
-    if ( bd != 200000) { // our best fit actually found something
+    if ( bd != 200000 ) { // our best fit actually found something
             ch = bp;
+            ph = P(ch + C(ch) - FS);
             size_t bs = C(ch);
             size_t diff = bs - s;
             //printf("diff: %d\nblocksize: %d\n", diff, bs);
