@@ -97,7 +97,8 @@ void *mm_malloc(size_t size) {
     if ( bp ) {
         ch = bp;
         size_t bs = C(ch); // block size
-        ph = P(ch + bs - FS);
+        ph = ch + bs - FS;
+        ph = P(ph);
         if ( bs >= s ) { // big enough
             size_t diff = bs - s;
             if ( diff >= 16 + HS + FS ) { // split block
