@@ -64,12 +64,12 @@ team_t team = {
 int mm_init(void) {
     // init first pointer
     size_t SB = 64; // smallboiz
-    char *p = mem_sbrk(HS + SB);
-    char *h = p+8;
+    char *p = mem_sbrk(HS + SB); // header
+    char *h = p+8; // first
     P(p) = h;
     C(h) = SB;
     P(h) = NULL;
-    char *f = p + SB - FS;
+    char *f = h + SB - FS;
     P(f) = p;
     C(f) = SB;
     return 0;
@@ -99,6 +99,7 @@ void *mm_malloc(size_t size) {
         size_t bs = C(ch); // block size
         ph = ch + bs - FS;
         ph = P(ph);
+        assert(ph);
         assert(P(ph)==ch);
         if ( bs >= s ) { // big enough
             size_t diff = bs - s;
